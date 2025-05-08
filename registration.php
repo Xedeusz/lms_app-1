@@ -1,3 +1,70 @@
+<?php
+ 
+require_once('classes/database.php');
+require_once('classes/functions.php');
+ 
+$con = new database();
+$sweetAlertConfig = ''; 
+ 
+if(isset($_POST['multisave'])){
+  $email = $_POST['email'];
+  $username = $_POST['username'];
+  $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
+ 
+ 
+  $firstname = $_POST['firstname'];
+  $lastname = $_POST['lastname'];
+  $birthday = $_POST['birthday'];
+  $sex = $_POST['sex'];
+  $phone = $_POST['phone'];
+ 
+ 
+  $profile_picture_path = handleFileUpload($_FILES["profile_picture"]);
+  if ($profile_picture_path === false) {
+  $_SESSION['error'] = "Sorry, there was an error uploading your file or the file is invalid.";
+} else {
+ 
+ 
+  $userID = $con->signupUser($firstname, $lastname, $birthday, $email, $sex, $phone, $username, $password, $profile_picture_path);
+ 
+  if ($userID){
+ 
+  $street = $_POST['user_street'];
+  $barangay = $_POST['user_barangay'];
+  $city = $_POST['user_city'];
+  $province = $_POST['user_province'];
+ 
+  if($con->insertAddress($userID, $street, $barangay, $city, $province)){
+    $sweetAlertConfig = "
+    <script>
+    Swal.fire({
+      icon: 'success',
+      title: 'Registration Successful',
+      text: 'Your account has been created successfully!',
+      confirmButtonText: 'OK',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Redirect to login page
+          window.location.href = 'login.php';
+        }
+      });
+    </script>";
+ 
+  }else{
+    $_SESSION['error'] = "Error occured while inserting address. Please try again.";
+  }
+ 
+}else{
+    $_SESSION['error'] = "Sorry, there was an error signing up.";
+  }
+}
+}
+ 
+?>
+ 
+ 
+ 
+ 
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,9 +76,9 @@
   <link rel="stylesheet" href="./bootstrap-5.3.3-dist/css/bootstrap.css">
   <!-- JQuery for Address Selector -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  
+ 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+ 
   <title>LMS | Registration</title>
   <style>
     .form-step {
@@ -38,7 +105,7 @@ if (!empty($sweetAlertConfig)) {
       <div class="card mt-4">
         <div class="card-header bg-info text-white">Account Information</div>
         <div class="card-body">
-
+ 
         <div class="form-group">
             <label for="username">Username:</label>
             <input type="text" class="form-control" name="username" id="username" placeholder="Enter username" required>
@@ -59,7 +126,7 @@ if (!empty($sweetAlertConfig)) {
             <div class="valid-feedback">Looks good!</div>
             <div class="invalid-feedback">Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one special character.</div>
           </div>
-
+ 
           <div class="form-group">
             <label for="confirmPassword">Confirm Password:</label>
             <input type="password" class="form-control" name="confirmPassword" placeholder="Re-enter your password" required>
@@ -70,7 +137,7 @@ if (!empty($sweetAlertConfig)) {
       </div>
       <button type="button" id="nextButton" class="btn btn-primary mt-3" onclick="nextStep()">Next</button>
     </div>
-
+ 
     <!-- Step 2 -->
     <div class="form-step" id="step-2">
       <div class="card mt-4">
@@ -107,7 +174,7 @@ if (!empty($sweetAlertConfig)) {
               <div class="valid-feedback">Looks good.</div>
               <div class="invalid-feedback">Please select a sex.</div>
             </div>
-
+ 
               <!-- New Phone Number field -->
                 <div class="form-group col-md-6">
         <label for="phone">Phone Number:</label>
@@ -124,7 +191,7 @@ if (!empty($sweetAlertConfig)) {
       <button type="button" class="btn btn-secondary mt-3" onclick="prevStep()">Previous</button>
       <button type="button" class="btn btn-primary mt-3" onclick="nextStep()">Next</button>
     </div>
-
+ 
     <!-- Step 3 -->
     <div class="form-step" id="step-3">
       <div class="card mt-4">
@@ -179,25 +246,25 @@ if (!empty($sweetAlertConfig)) {
 <script src="ph-address-selector.js"></script>
 <!-- Script for Form Validation -->
 <script>
-  
+ 
     document.addEventListener("DOMContentLoaded", () => {
       const form = document.querySelector("form");
       const birthdayInput = document.getElementById("birthday");
       const steps = document.querySelectorAll(".form-step");
       let currentStep = 0;
-  
+ 
       // Set the max attribute of the birthday input to today's date
       const today = new Date().toISOString().split('T')[0];    
       birthdayInput.setAttribute('max', today);
-
+ 
       // Add event listeners for real-time validation
       const inputs = form.querySelectorAll("input, select");
       inputs.forEach(input => {
         input.addEventListener("input", () => validateInput(input));
         input.addEventListener("change", () => validateInput(input));
       });
-
-      //MultiStep Logic 
+ 
+      //MultiStep Logic
   // Add an event listener to the form's submit event
   form.addEventListener("submit", (event) => {
   // Prevent form submission if the current step is not valid
@@ -205,11 +272,11 @@ if (!empty($sweetAlertConfig)) {
     event.preventDefault();
     event.stopPropagation();
   }
-
+ 
   // Add the 'was-validated' class to the form for Bootstrap styling
   form.classList.add("was-validated");
 }, false);
-
+ 
 // Function to move to the next step
 window.nextStep = () => {
   // Only proceed to the next step if the current step is valid
@@ -219,31 +286,31 @@ window.nextStep = () => {
     steps[currentStep].classList.add("form-step-active"); // Show the next step
   }
 };
-
+ 
 // Function to move to the previous step
 window.prevStep = () => {
   steps[currentStep].classList.remove("form-step-active"); // Hide the current step
   currentStep--; // Decrement the current step index
   steps[currentStep].classList.add("form-step-active"); // Show the previous step
 };
-
+ 
 // Function to validate all inputs in the current step
 function validateStep(step) {
   let valid = true;
   // Select all input and select elements in the current step
   const stepInputs = steps[step].querySelectorAll("input, select");
-
+ 
   // Validate each input element
   stepInputs.forEach(input => {
     if (!validateInput(input)) {
       valid = false; // If any input is invalid, set valid to false
     }
   });
-
+ 
   return valid; // Return the overall validity of the step
 }
-
-  
+ 
+ 
       function validateInput(input) {
         if (input.name === 'password') {
           return validatePassword(input);
@@ -261,7 +328,7 @@ function validateStep(step) {
           }
         }
       }
-  
+ 
       function validatePassword(passwordInput) {
         const password = passwordInput.value;
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
@@ -275,12 +342,12 @@ function validateStep(step) {
           return false;
         }
       }
-  
+ 
       function validateConfirmPassword(confirmPasswordInput) {
         const passwordInput = form.querySelector("input[name='password']");
         const password = passwordInput.value;
         const confirmPassword = confirmPasswordInput.value;
-      
+     
         if (password === confirmPassword && password !== '') {
           confirmPasswordInput.classList.remove("is-invalid");
           confirmPasswordInput.classList.add("is-valid");
@@ -291,10 +358,10 @@ function validateStep(step) {
           return false;
         }
       }
-      
+     
     });
   </script>
-  
+ 
   </body>
   </html>
-  
+ 
