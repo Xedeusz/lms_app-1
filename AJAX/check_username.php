@@ -23,4 +23,4 @@ if (isset($_POST['username'])) {
     } else {
         echo json_encode(['exists' => false]);
     }
-}
+} //nice one
